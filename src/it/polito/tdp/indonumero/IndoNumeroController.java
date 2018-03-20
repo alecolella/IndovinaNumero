@@ -6,16 +6,20 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
+import javafx.util.converter.NumberStringConverter;
 
 public class IndoNumeroController {
-	private int NMAX = 100;
-	private int TMAX = 7;
-	private int segreto; //numero da indovinare
-	private int tentativi; //tentativi già fatti
-	
-	private boolean inGame = false; // dice se c'è partita in corso
 
-    @FXML
+	private Model model;
+
+    public void setModel(Model model) {
+		this.model = model;
+		
+		txtCurr.textProperty().bindBidirectional(model.tentativiProperty(), new NumberStringConverter());
+		
+	}
+
+	@FXML
     private Button btnNuova;
 
     @FXML
@@ -35,26 +39,25 @@ public class IndoNumeroController {
 
     @FXML
     void handleNuova(ActionEvent event) {
-    	segreto = (int) (Math.random()*NMAX)+1 ;
-    	inGame = true;
-    	tentativi = 0;
+    	
+    	model.newGame();
     	
     	btnNuova.setDisable(true);
     	boxGioco.setDisable(false);
-    	txtCurr.setText(String.format("%d", tentativi));
-    	txtMax.setText(String.format("%d", TMAX));
+    	//txtCurr.setText(String.format("%d", model.getTentativi()));
+    	txtMax.setText(String.format("%d", model.getTMAX()));
     	
     	txtLog.clear();
     	txtTentativo.clear();
     	
-    	txtLog.setText(String.format("Indovina un numero tra %d e %d\n", 1, NMAX));
+    	txtLog.setText(String.format("Indovina un numero tra %d e %d\n", 1, model.getNMAX()));
     }
 
     @FXML
     void handleProva(ActionEvent event) {
     	
     	String numS = txtTentativo.getText();
-    	int num;
+    	
     	
     	if(numS.length() == 0) {
     		txtLog.appendText(String.format("Devi inserire numero\n"));
@@ -62,54 +65,61 @@ public class IndoNumeroController {
     	}
     	try {
     		//numero effettivamente intero
-    	num = Integer.parseInt(numS);
+    	int num = Integer.parseInt(numS);
     	
-    	if(num<1 || num>NMAX) {
+    	if(!model.valoreValido(num)) {
     		txtLog.appendText("Numero fuori dall'intervallo!\n");
     		return;
     	}
     	
+    	int risultato = model.tentativo(num);
+    	
+    	if(risultato == 0 ){
+    		//ho vinto
+    		txtLog.appendText(String.format("Hai vinto\n"));
+    		
     	}
+    	else if(risultato<0){
+    		//troppo piccolo
+    		txtLog.appendText(String.format("Troppo piccolo\n"));
+    		
+    	}
+    	else{
+    		//troppo grande
+    		txtLog.appendText(String.format("Troppo grande\n"));
+    		
+    	}
+    	
+    	if(!model.isInGame()) {
+    		//La partita è finita (vittoria o sconfitta)
+    		if(risultato!=0) {
+    			txtLog.appendText(String.format("Hai perso\n"));
+    		txtLog.appendText(String.format("Hai perso! Il numero era %d\n", model.getSegreto()));
+    	}
+
+
+    	btnNuova.setDisable(false);
+
+    	boxGioco.setDisable(true);
+    	}
+    	}
+    
     	catch(NumberFormatException ex) {
     		txtLog.appendText(String.format("Il dato inserito non è un numero\n"));
     		return;
     		
     	}
-
-    	tentativi++;
-    	
-    	txtCurr.setText(String.format("%d", tentativi));
-    	txtMax.setText(String.format("%d", TMAX));
-    	
-    	if(tentativi == TMAX) {
-    		//ho perso
-    		txtLog.appendText(String.format("Hai perso! Il numero era %d\n", this.segreto));
-    		//chiudo partita
-    		boxGioco.setDisable(true);
-    		btnNuova.setDisable(false);
-    		this.inGame = false;
-    		return;
-    	}
-    	if(num == segreto) {
-    		//ho vinto
-    		txtLog.appendText(String.format("Hai vinto\n"));
-    		//chiudo partita
-    		boxGioco.setDisable(true);
-    		btnNuova.setDisable(false);
-    		this.inGame = false;
-    		return;
-    	}
-    	if(num<segreto) {
-    		//troppo piccolo
-    		txtLog.appendText(String.format("Troppo piccolo\n"));
-    		return;
-    	}
-    	if(num>segreto) {
-    		//troppo grande
-    		txtLog.appendText(String.format("Troppo grande\n"));
-    		return;
-    	}
-    		
+	
+    }
+    
+    @FXML // This method is called by the FXMLLoader when initialization is complete
+    void initialize() { //viene chiamato quando model non c'è ancora,main non ha fatto setModel
+        assert btnNuova != null : "fx:id=\"btnNuova\" was not injected: check your FXML file 'IndoNumero.fxml'.";
+        assert txtCurr != null : "fx:id=\"txtCurr\" was not injected: check your FXML file 'IndoNumero.fxml'.";
+        assert txtMax != null : "fx:id=\"txtMax\" was not injected: check your FXML file 'IndoNumero.fxml'.";
+        assert boxGioco != null : "fx:id=\"boxGioco\" was not injected: check your FXML file 'IndoNumero.fxml'.";
+        assert txtTentativo != null : "fx:id=\"txtTentativo\" was not injected: check your FXML file 'IndoNumero.fxml'.";
+        assert txtLog != null : "fx:id=\"txtLog\" was not injected: check your FXML file 'IndoNumero.fxml'.";
     }
 
 }
